@@ -1,30 +1,38 @@
 "use strict";
-const $=s=>document.querySelector(s);
-const el=(tag,text,attrs={})=>{const x=document.createElement(tag); if(text!==undefined)x.textContent=text; for(const [k,v] of Object.entries(attrs))x.setAttribute(k,v); return x};
-const currency=new Intl.NumberFormat("es-CO",{style:"currency",currency:"COP",maximumFractionDigits:0});
-const money=n=>currency.format(n)+" COP";
-const artist=id=>DB.artist.find(x=>x.artist_id===id);
-const group=id=>DB.art_group.find(x=>x.group_code===id);
-const groupsOf=id=>DB.artwork_group.filter(x=>x.artwork_id===id).map(x=>x.group_code);
-const normalized=x=>x.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
-const thumb=w=>{const wrap=el("span",undefined,{class:"art"});wrap.append(el("img",undefined,{src:w.image_url,alt:w.title+" by Andrea Montaña",loading:"lazy",decoding:"async"}));return wrap};
-const chips=xs=>{const wrap=el("div",undefined,{class:"chips"});xs.forEach(x=>wrap.append(el("span",x,{class:"chip"})));return wrap};
-for(const g of DB.art_group)$("#group").append(el("option",g.name,{value:g.group_code}));
-for(const c of DB.customer)$("#collector").append(el("option",c.name,{value:c.customer_id}));
-function detail(w){const a=artist(w.artist_id), d=$("#dialogContent");
-d.replaceChildren(thumb(w),el("p",w.artwork_id+" / "+(w.medium||"Medium not published")+" / "+w.year,{class:"eyebrow"}),el("h2",w.title,{id:"detailTitle"}),el("p",w.price_cop===null?"Price not published":money(w.price_cop)),el("h3",a.name),el("p","Artist ID "+a.artist_id+" · Birthplace, birthdate and style not published for this exercise.",{class:"muted"}),chips(DB.artwork_group.filter(g=>g.artwork_id===w.artwork_id).map(g=>group(g.group_code).name+(g.provenance==="case-study"?" (example tag)":""))),el("p","Artwork © Andrea Montaña."),el("a","View in Andrea’s original catalogue ↗",{href:w.source_url}));
-$("#detail").showModal();}
-function catalogue(){const q=normalized($("#search").value.trim()),t=$("#type").value,g=$("#group").value;
-const hits=DB.artwork.filter(w=>(!t||t===(w.art_type||"unknown"))&&(!g||groupsOf(w.artwork_id).includes(g))&&normalized([w.title,artist(w.artist_id).name,w.artwork_id].join(" ")).includes(q));
-$("#count").textContent=hits.length+" of "+DB.artwork.length+" published works";
-$("#works").replaceChildren(...hits.map(w=>{const b=el("button",undefined,{type:"button",class:"card","aria-label":"View "+w.title});b.append(thumb(w),el("h3",w.title),el("span",artist(w.artist_id).name+" · "+w.year,{class:"muted"}));b.addEventListener("click",()=>detail(w));return b}));
-if(!hits.length)$("#works").append(el("p","No works match those filters."));}
-function table(headers,data){const t=el("table"),h=el("thead"),b=el("tbody"),r=el("tr");headers.forEach(x=>r.append(el("th",x,{scope:"col"})));h.append(r);data.forEach(row=>{const x=el("tr");row.forEach(c=>x.append(el("td",c)));b.append(x)});t.append(h,b);return t}
-function query(){const kind=$("#query").value,cid=$("#collector").value;$("#collectorLabel").hidden=kind!=="preferences";const p=$("#profile");p.hidden=kind!=="preferences";let sql,cols,rows;
-if(kind==="catalogue"){sql="SELECT * FROM gallery_catalogue\nWHERE art_type = 'Painting'\nORDER BY year, title;";cols=["ID","Title","Artist","Year","Art type","Medium","Price"];rows=DB.artwork.filter(w=>w.art_type==="Painting").sort((a,b)=>a.year-b.year || (a.title===b.title?0:a.title<b.title?-1:1)).map(w=>[w.artwork_id,w.title,artist(w.artist_id).name,w.year,w.art_type,w.medium,w.price_cop===null?"Not published":money(w.price_cop)]);}
-else if(kind==="groups"){sql="SELECT * FROM group_inventory ORDER BY group_code;";cols=["Group code","Group","Works"];rows=[...DB.art_group].sort((a,b)=>a.group_code.localeCompare(b.group_code)).map(g=>[g.group_code,g.name,DB.artwork_group.filter(x=>x.group_code===g.group_code).length]);}
-else {const c=DB.customer.find(c=>c.customer_id===cid),aa=DB.customer_artist.filter(x=>x.customer_id===cid).map(x=>x.artist_id),gg=DB.customer_group.filter(x=>x.customer_id===cid).map(x=>x.group_code);
-p.replaceChildren(el("p",c.name+" ("+c.customer_id+") · "+c.address+" · Lifetime spend: "+money(c.total_spent_cop)),chips([...aa.map(id=>"Artist: "+artist(id).name),...gg.map(id=>"Group: "+group(id).name)]));
-sql="SELECT * FROM customer_recommendations\nWHERE customer_id = '"+cid+"' ORDER BY artwork_id;";cols=["ID","Title","Liked artist?","Liked group?"];rows=DB.artwork.map(w=>[w.artwork_id,w.title,aa.includes(w.artist_id),groupsOf(w.artwork_id).some(x=>gg.includes(x))]).filter(w=>w[2]||w[3]).sort((a,b)=>a[0]===b[0]?0:a[0]<b[0]?-1:1).map(w=>[w[0],w[1],w[2]?"Yes":"No",w[3]?"Yes":"No"]);}
-$("#sql").textContent=sql;$("#result").replaceChildren(table(cols,rows));}
-$("#search").addEventListener("input",catalogue);["#type","#group"].forEach(s=>$(s).addEventListener("change",catalogue));["#query","#collector"].forEach(s=>$(s).addEventListener("change",query));catalogue();query();
+const $=s=>document.querySelector(s), D=DB.records, Q=DB.queries;
+const e=(tag,t)=>Object.assign(document.createElement(tag),t===undefined?{}:{textContent:t});
+const name=id=>D.artist.find(a=>a.artist_id===id)?.name;
+const code=id=>D.art_group.find(g=>g.group_code===id)?.name;
+const money=v=>new Intl.NumberFormat("en",{style:"currency",currency:"COP",maximumFractionDigits:0,currencyDisplay:"code"}).format(v);
+const norm=s=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+const sourced=v=>v==null?"Not published":v;
+const link=(label,url)=>Object.assign(e("a",label),{href:url});
+function table(sel,headers,data){
+ const t=e("table"),h=e("thead"),b=e("tbody"),r=e("tr");
+ headers.forEach(x=>r.append(Object.assign(e("th",x),{scope:"col"})));h.append(r);
+ if(!data.length){const row=e("tr");row.append(Object.assign(e("td","No matching records."),{colSpan:headers.length}));b.append(row)}
+ data.forEach(row=>{const tr=e("tr");row.forEach(c=>{const td=e("td");td.append(c instanceof Node?c:String(c));tr.append(td)});b.append(tr)});
+ t.append(h,b);$(sel).replaceChildren(t);
+}
+const memberships=id=>D.artwork_group.filter(g=>g.artwork_id===id);
+function artwork(){
+ const q=norm($("#search").value.trim()),g=$("#group").value;
+ const hits=D.artwork.filter(w=>norm(w.title+" "+w.artwork_id).includes(q)&&(!g||memberships(w.artwork_id).some(m=>m.group_code===g)));
+ $("#count").textContent=hits.length+" of "+D.artwork.length+" works";
+ table("#works-table",["Artwork ID","Title / source","Artist ID","Year","Type","Medium","Price","Group codes"],hits.map(w=>[w.artwork_id,link(w.title,w.source_url),w.artist_id,w.year,sourced(w.art_type),sourced(w.medium),w.price_cop==null?"Not published":money(w.price_cop),memberships(w.artwork_id).map(m=>m.group_code+(m.provenance==="case-study"?" (example)":"")).join(", ")]));
+}
+function query(){
+ const k=$("#query").value,id=$("#collector").value,q=Q[k], rec=k==="recommendations";
+ $("#collector-controls").hidden=!rec;
+ $("#sql").textContent=rec?"-- Parameter: "+id+"\n"+q.sql:q.sql;
+ const heads={porto:["Code","Group","Membership source"],inventory:["Code","Group","Published memberships","Example memberships"],recommendations:["Artwork ID","Title","Liked artist","Liked group"]};
+ const rows=rec?q.rows[id].map(r=>[r[0],r[1],r[2]?"Yes":"No",r[3]?"Yes":"No"]):k==="porto"?q.rows.map(r=>[r[0],r[1],r[2]==="portfolio"?"Published":"Case-study example"]):q.rows;
+ table("#results",heads[k],rows);
+}
+table("#artist-table",["Artist ID","Name","Birthplace","Birthdate","Style"],D.artist.map(a=>[a.artist_id,a.name,sourced(a.birthplace),sourced(a.birthdate),sourced(a.style)]));
+table("#group-table",["Group code","Published group name"],D.art_group.map(g=>[g.group_code,g.name]));
+table("#customer-table",["Customer ID","Name","Address","Lifetime spend","Liked artists","Liked groups"],D.customer.map(c=>[c.customer_id,c.name,c.address,money(c.total_spent_cop),D.customer_artist.filter(x=>x.customer_id===c.customer_id).map(x=>name(x.artist_id)).join(", ")||"None",D.customer_group.filter(x=>x.customer_id===c.customer_id).map(x=>code(x.group_code)).join(", ")||"None"]));
+D.art_group.forEach(g=>$("#group").append(Object.assign(e("option",g.name),{value:g.group_code})));
+D.customer.forEach(c=>$("#collector").append(Object.assign(e("option",c.name),{value:c.customer_id})));
+$("#search").addEventListener("input",artwork);$("#group").addEventListener("change",artwork);$("#query").addEventListener("change",query);$("#collector").addEventListener("change",query);$("#porto").addEventListener("click",()=>{$("#query").value="porto";query()});
+artwork();query();

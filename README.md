@@ -1,5 +1,10 @@
-# Arte de la Montaña / Art Gallery Case Study
+# Arte de la Montaña / Gallery database
 
-Independent academic database exercise using 32 real public artworks from [Andrea Montaña’s Design & Art catalogue](https://andreamontana.com/design-art/). Artwork is © Andrea Montaña; source links refer to her portfolio. Titles, media, years and original collections follow the catalogue. Prices are NULL, and broad types are a case-study interpretation of published media. Collector records and transaction totals are synthetic. Three optional secondary tags illustrate many-to-many classification and are labeled separately.
+Academic worked example, not the official portfolio. Public artwork metadata: https://andreamontana.com/design-art/. There are no verified prices or real customer records. Three illustrative extra group memberships are marked `case-study`.
 
-The site is dependency-free on GitHub Pages. For a local copy, serve this directory with \`python -m http.server\`. The normalized SQLite schema, fixture and three query views are in \`gallery.sql\`; run the script against an empty database. Browser data was exported from the same SQLite fixture into \`data.js\`.
+- `gallery.db`: runnable SQLite database.
+- `gallery.sql`: schema and seed records; apply to an empty database.
+- `build.py`: rebuilds `gallery.db` and runs the three queries, exporting their real results to `data.js`.
+- `index.html`: dependency-free GitHub Pages viewer for these records and results.
+
+Rebuild with `python build.py`. To inspect manually, open `gallery.db` in a SQLite client and copy any SQL example from the site. Replace the parameter `?` with a demo collector ID such as `'C02'` when running the recommendation query manually.
