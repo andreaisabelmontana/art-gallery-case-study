@@ -1,2 +1,3 @@
-# art-gallery-case-study
-Art de la Montaña-inspired gallery database case study using entirely synthetic records.
+# Art de la Montaña / Art Gallery Case Study
+Static, educational worked example inspired by @artedelamontana, not her official site. Every artist, artwork, price, and collector shown is synthetic. No data is collected.
+Serve the folder with `python -m http.server`. The GitHub Pages build uses the repository root and has no runtime dependencies. `gallery.sql` is the normalized SQLite schema, fixture and views. To run against a new local database: `sqlite3 :memory: < gallery.sql`. The on-page lab mirrors its three queries using the same seed data. Browser data was exported directly from a loaded SQLite fixture into `data.js`.
