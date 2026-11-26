@@ -19,7 +19,7 @@ function artwork(){
  const q=norm($("#search").value.trim()),g=$("#group").value;
  const hits=D.artwork.filter(w=>norm(w.title+" "+w.artwork_id).includes(q)&&(!g||memberships(w.artwork_id).some(m=>m.group_code===g)));
  $("#count").textContent=hits.length+" of "+D.artwork.length+" works";
- table("#works-table",["Artwork ID","Title / source","Artist ID","Year","Type","Medium","Price","Group codes"],hits.map(w=>[w.artwork_id,link(w.title,w.source_url),w.artist_id,w.year,sourced(w.art_type),sourced(w.medium),w.price_cop==null?"Not published":money(w.price_cop),memberships(w.artwork_id).map(m=>m.group_code+(m.provenance==="case-study"?" (example)":"")).join(", ")]));
+ $("#works-table").replaceChildren(...(hits.length?hits.map(w=>card(w)):[e("p","No works match these filters.")]));
 }
 function query(){
  const k=$("#query").value,id=$("#collector").value,q=Q[k], rec=k==="recommendations";
@@ -36,3 +36,46 @@ D.art_group.forEach(g=>$("#group").append(Object.assign(e("option",g.name),{valu
 D.customer.forEach(c=>$("#collector").append(Object.assign(e("option",c.name),{value:c.customer_id})));
 $("#search").addEventListener("input",artwork);$("#group").addEventListener("change",artwork);$("#query").addEventListener("change",query);$("#collector").addEventListener("change",query);$("#porto").addEventListener("click",()=>{$("#query").value="porto";query()});
 artwork();query();
+
+function photo(w){
+ const img=e("img");img.alt=w.title;img.src=w.image_url;img.loading="lazy";img.decoding="async";
+ img.addEventListener("error",()=>{const frame=img.parentElement;if(frame)frame.replaceChildren(e("span","Image unavailable"));},{once:true});
+ return img;
+}
+function card(w,why){
+ const el=e("article");el.className="art-card";
+ const a=link("",w.source_url);
+ const frame=e("div");frame.className="plate";frame.append(photo(w));
+ a.append(frame,e("h3",w.title));el.append(a,e("p",[w.medium,w.year].filter(Boolean).join(" · ")));
+ if(why){const p=e("p",why);p.className="reason";el.append(p);}
+ return el;
+}
+const cover=e("div"); const heroWork=D.artwork.find(w=>w.artwork_id==="caracas-skyline");const heroImg=photo(heroWork);
+heroImg.loading="eager";cover.append(heroImg);$("#hero-image").append(cover);
+const picks={places:"venezia",people:"laia",creatures:"pescadito",objects:"porto"};
+for(const g of D.art_group){
+ const w=D.artwork.find(w=>w.artwork_id===picks[g.group_code])||D.artwork.find(w=>memberships(w.artwork_id).some(m=>m.group_code===g.group_code));
+ const tile=link("","#works");tile.className="collection";
+ const frame=e("div");frame.className="plate";if(w)frame.append(photo(w));
+ tile.append(frame,e("strong",g.name));
+ tile.addEventListener("click",()=>{$("#search").value="";$("#group").value=g.group_code;artwork();});
+ $("#collection-grid").append(tile);
+}
+const profile=$("#match-profile");
+for(const c of D.customer)profile.append(Object.assign(e("option",c.name),{value:c.customer_id}));
+function refreshMatch(){
+ const id=profile.value, customer=D.customer.find(c=>c.customer_id===id);
+ const liked=D.customer_group.filter(g=>g.customer_id===id).map(g=>g.group_code);
+ const preferred=D.customer_artist.filter(g=>g.customer_id===id).map(g=>g.artist_id);
+ const rows=Q.recommendations.rows[id]||[];
+ $("#collector-summary").replaceChildren(e("p",rows.length+" matching works · Fictional lifetime spend: "+money(customer.total_spent_cop)),e("p","Collects: "+[...preferred.map(name),...liked.map(code)].join(", ")));
+ $("#collector-matches").replaceChildren(...rows.slice(0,6).map(([key,title,artist,group])=>{
+  const w=D.artwork.find(w=>w.artwork_id===key), reasons=[];
+  if(artist)reasons.push("Follows "+name(w.artist_id));
+  if(group)reasons.push("Collects "+memberships(key).filter(m=>liked.includes(m.group_code)).map(m=>code(m.group_code)).join(" & "));
+  return card(w,reasons.join(" · "));
+ }));
+ if(rows.length>6){const full=link("View all "+rows.length+" matches in SQL results ↓","#queries");full.addEventListener("click",()=>{ $(".technical").open=true;$("#query").value="recommendations";$("#collector").value=id;query();});$("#collector-summary").append(full);}
+}
+profile.addEventListener("change",refreshMatch);
+refreshMatch();

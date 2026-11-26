@@ -8,3 +8,6 @@ Academic worked example, not the official portfolio. Public artwork metadata: ht
 - `index.html`: dependency-free GitHub Pages viewer for these records and results.
 
 Rebuild with `python build.py`. To inspect manually, open `gallery.db` in a SQLite client and copy any SQL example from the site. Replace the parameter `?` with a demo collector ID such as `'C02'` when running the recommendation query manually.
+
+
+Catalogue design study: collection-first navigation and image-led cards inspired by https://sofyggg.com/. No graphics or code from that storefront are used.
